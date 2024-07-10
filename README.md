@@ -124,7 +124,7 @@ Typical use cases of PaintsUndo:
 
 and much more ...
 
-&ast; *this is already possible - if you use PaintsUndo to Undo 500 steps, and want to Redo 100 steps with different possibilities, you can use ControlNet to finish it (so that it becomes step 0) and then undo 400 step. More integrated solution is still under experiments.*
+&ast; *this is already possible - if you use PaintsUndo to Undo 500 steps, and want to Redo 100 steps with different possibilities, you can use ControlNet to finish it (so that it becomes step 0) and then undo 400 steps. More integrated solution is still under experiments.*
 
 # Disclaimer
 
