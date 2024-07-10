@@ -8,9 +8,13 @@ The name "Paints-Undo" is inspired by the similarity that, the model's outputs l
 
 Paints-Undo presents a family of models that take an image as input and then output the drawing sequence of that image. The model displays all kinds of human behaviors, including but not limited to sketching, inking, coloring, shading, transforming, left-right flipping, color curve tuning, changing the visibility of layers, and even changing the overall idea during the drawing process.
 
-**This page does not contain any examples. All examples are in the below Git page:**
+*This page does not contain any examples. All examples are in the below Git page:*
 
 [>>> Click Here to See the Example Page <<<](https://lllyasviel.github.io/pages/paints_undo/)
+
+**This GitHub repo is the only official page of PaintsUndo. We do not have any other websites.**
+
+**Do note that many fake websites of PaintsUndo are on Google and social media recently.**
 
 # Get Started
 
@@ -105,6 +109,22 @@ Step 3: In the UI titled "step 3", click "Generate Video". You can change seeds 
       title  = {Paints-Undo GitHub Page},
       year   = {2024},
     }
+
+# Applications
+
+Typical use cases of PaintsUndo:
+
+1. Use PaintsUndo as a base model to analyze human behavior to build AI tools that align with human behavior and human demands, for seamless collaboration between AI and humans in a perfectly controlled workflow.
+
+2. Combine PaintsUndo with sketch-guided image generators to achieve “PaintsRedo”, so as to move forward or backward arbitrarily in any of your finished/unfinished artworks to enhance human creativity power. &ast;
+
+3. Use PaintsUndo to view different possible procedures of your own artworks for artistic inspirations.
+
+4. Use the outputs of PaintsUndo as a kind of video/movie After Effects to achieve specific creative purposes.
+
+and much more ...
+
+&ast; *this is already possible - if you use PaintsUndo to Undo 500 steps, and want to Redo 100 steps with different possibilities, you can use ControlNet to finish it (so that it becomes step 0) and then undo 400 step. More integrated solution is still under experiments.*
 
 # Disclaimer
 

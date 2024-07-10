@@ -269,6 +269,9 @@ with block:
     with gr.Accordion(label='Step 3: Generate All Videos', open=True):
         with gr.Row():
             with gr.Column():
+                # Note that, at "Step 3: Generate All Videos", using "1girl, masterpiece, best quality"
+                # or "1boy, masterpiece, best quality" or just "masterpiece, best quality" leads to better results.
+                # Do NOT modify this to use the prompts generated from Step 1 !!
                 i2v_input_text = gr.Text(label='Prompts', value='1girl, masterpiece, best quality')
                 i2v_seed = gr.Slider(label='Stage 2 Seed', minimum=0, maximum=50000, step=1, value=123)
                 i2v_cfg_scale = gr.Slider(minimum=1.0, maximum=15.0, step=0.5, label='CFG Scale', value=7.5,
