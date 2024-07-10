@@ -111,13 +111,13 @@ def resize_without_crop(image, target_width, target_height):
 
 
 @torch.inference_mode()
-def interrogator_process(x):
+def interrogator_process(x: np.ndarray) -> str:
     return wd14tagger.default_interrogator(x)
 
 
 @torch.inference_mode()
-def process(input_fg, prompt, input_undo_steps, image_width, image_height, seed, steps, n_prompt, cfg,
-            progress=gr.Progress()):
+def process(input_fg: np.ndarray, prompt: str, input_undo_steps: list[int], image_width: int, image_height: int, 
+            seed: int, steps: int, n_prompt: str, cfg: float, progress: gr.Progress) -> list[np.ndarray]:
     rng = torch.Generator(device=memory_management.gpu).manual_seed(int(seed))
 
     memory_management.load_models_to_gpu(vae)
@@ -212,7 +212,7 @@ def process_video_inner(image_1, image_2, prompt, seed=123, steps=25, cfg_scale=
 
 
 @torch.inference_mode()
-def process_video(keyframes, prompt, steps, cfg, fps, seed, progress=gr.Progress()):
+def process_video(keyframes: list[tuple[str]], prompt: str, steps: int, cfg: float, fps: int, seed: int, progress=gr.Progress()):
     result_frames = []
     cropped_images = []
 
@@ -237,85 +237,86 @@ def process_video(keyframes, prompt, steps, cfg, fps, seed, progress=gr.Progress
     return output_filename, video
 
 
-block = gr.Blocks().queue()
-with block:
-    gr.Markdown('# Paints-Undo')
+if __name__  == "__main__":
+    block = gr.Blocks().queue()
+    with block:
+        gr.Markdown('# Paints-Undo')
 
-    with gr.Accordion(label='Step 1: Upload Image and Generate Prompt', open=True):
-        with gr.Row():
-            with gr.Column():
-                input_fg = gr.Image(sources=['upload'], type="numpy", label="Image", height=512)
-            with gr.Column():
-                prompt_gen_button = gr.Button(value="Generate Prompt", interactive=False)
-                prompt = gr.Textbox(label="Output Prompt", interactive=True)
+        with gr.Accordion(label='Step 1: Upload Image and Generate Prompt', open=True):
+            with gr.Row():
+                with gr.Column():
+                    input_fg = gr.Image(sources=['upload'], type="numpy", label="Image", height=512)
+                with gr.Column():
+                    prompt_gen_button = gr.Button(value="Generate Prompt", interactive=False)
+                    prompt = gr.Textbox(label="Output Prompt", interactive=True)
 
-    with gr.Accordion(label='Step 2: Generate Key Frames', open=True):
-        with gr.Row():
-            with gr.Column():
-                input_undo_steps = gr.Dropdown(label="Operation Steps", value=[400, 600, 800, 900, 950, 999],
-                                               choices=list(range(1000)), multiselect=True)
-                seed = gr.Slider(label='Stage 1 Seed', minimum=0, maximum=50000, step=1, value=12345)
-                image_width = gr.Slider(label="Image Width", minimum=256, maximum=1024, value=512, step=64)
-                image_height = gr.Slider(label="Image Height", minimum=256, maximum=1024, value=640, step=64)
-                steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=50, step=1)
-                cfg = gr.Slider(label="CFG Scale", minimum=1.0, maximum=32.0, value=3.0, step=0.01)
-                n_prompt = gr.Textbox(label="Negative Prompt",
-                                      value='lowres, bad anatomy, bad hands, cropped, worst quality')
+        with gr.Accordion(label='Step 2: Generate Key Frames', open=True):
+            with gr.Row():
+                with gr.Column():
+                    input_undo_steps = gr.Dropdown(label="Operation Steps", value=[400, 600, 800, 900, 950, 999],
+                                                choices=list(range(1000)), multiselect=True)
+                    seed = gr.Slider(label='Stage 1 Seed', minimum=0, maximum=50000, step=1, value=12345)
+                    image_width = gr.Slider(label="Image Width", minimum=256, maximum=1024, value=512, step=64)
+                    image_height = gr.Slider(label="Image Height", minimum=256, maximum=1024, value=640, step=64)
+                    steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=50, step=1)
+                    cfg = gr.Slider(label="CFG Scale", minimum=1.0, maximum=32.0, value=3.0, step=0.01)
+                    n_prompt = gr.Textbox(label="Negative Prompt",
+                                        value='lowres, bad anatomy, bad hands, cropped, worst quality')
 
-            with gr.Column():
-                key_gen_button = gr.Button(value="Generate Key Frames", interactive=False)
-                result_gallery = gr.Gallery(height=512, object_fit='contain', label='Outputs', columns=4)
+                with gr.Column():
+                    key_gen_button = gr.Button(value="Generate Key Frames", interactive=False)
+                    result_gallery = gr.Gallery(height=512, object_fit='contain', label='Outputs', columns=4)
 
-    with gr.Accordion(label='Step 3: Generate All Videos', open=True):
-        with gr.Row():
-            with gr.Column():
-                i2v_input_text = gr.Text(label='Prompts', value='1girl, masterpiece, best quality')
-                i2v_seed = gr.Slider(label='Stage 2 Seed', minimum=0, maximum=50000, step=1, value=123)
-                i2v_cfg_scale = gr.Slider(minimum=1.0, maximum=15.0, step=0.5, label='CFG Scale', value=7.5,
-                                          elem_id="i2v_cfg_scale")
-                i2v_steps = gr.Slider(minimum=1, maximum=60, step=1, elem_id="i2v_steps",
-                                      label="Sampling steps", value=50)
-                i2v_fps = gr.Slider(minimum=1, maximum=30, step=1, elem_id="i2v_motion", label="FPS", value=4)
-            with gr.Column():
-                i2v_end_btn = gr.Button("Generate Video", interactive=False)
-                i2v_output_video = gr.Video(label="Generated Video", elem_id="output_vid", autoplay=True,
-                                            show_share_button=True, height=512)
-        with gr.Row():
-            i2v_output_images = gr.Gallery(height=512, label="Output Frames", object_fit="contain", columns=8)
+        with gr.Accordion(label='Step 3: Generate All Videos', open=True):
+            with gr.Row():
+                with gr.Column():
+                    i2v_input_text = gr.Text(label='Prompts', value='1girl, masterpiece, best quality')
+                    i2v_seed = gr.Slider(label='Stage 2 Seed', minimum=0, maximum=50000, step=1, value=123)
+                    i2v_cfg_scale = gr.Slider(minimum=1.0, maximum=15.0, step=0.5, label='CFG Scale', value=7.5,
+                                            elem_id="i2v_cfg_scale")
+                    i2v_steps = gr.Slider(minimum=1, maximum=60, step=1, elem_id="i2v_steps",
+                                        label="Sampling steps", value=50)
+                    i2v_fps = gr.Slider(minimum=1, maximum=30, step=1, elem_id="i2v_motion", label="FPS", value=4)
+                with gr.Column():
+                    i2v_end_btn = gr.Button("Generate Video", interactive=False)
+                    i2v_output_video = gr.Video(label="Generated Video", elem_id="output_vid", autoplay=True,
+                                                show_share_button=True, height=512)
+            with gr.Row():
+                i2v_output_images = gr.Gallery(height=512, label="Output Frames", object_fit="contain", columns=8)
 
-    input_fg.change(lambda: ["", gr.update(interactive=True), gr.update(interactive=False), gr.update(interactive=False)],
-                    outputs=[prompt, prompt_gen_button, key_gen_button, i2v_end_btn])
+        input_fg.change(lambda: ["", gr.update(interactive=True), gr.update(interactive=False), gr.update(interactive=False)],
+                        outputs=[prompt, prompt_gen_button, key_gen_button, i2v_end_btn])
 
-    prompt_gen_button.click(
-        fn=interrogator_process,
-        inputs=[input_fg],
-        outputs=[prompt]
-    ).then(lambda: [gr.update(interactive=True), gr.update(interactive=True), gr.update(interactive=False)],
-           outputs=[prompt_gen_button, key_gen_button, i2v_end_btn])
+        prompt_gen_button.click(
+            fn=interrogator_process,
+            inputs=[input_fg],
+            outputs=[prompt]
+        ).then(lambda: [gr.update(interactive=True), gr.update(interactive=True), gr.update(interactive=False)],
+            outputs=[prompt_gen_button, key_gen_button, i2v_end_btn])
 
-    key_gen_button.click(
-        fn=process,
-        inputs=[input_fg, prompt, input_undo_steps, image_width, image_height, seed, steps, n_prompt, cfg],
-        outputs=[result_gallery]
-    ).then(lambda: [gr.update(interactive=True), gr.update(interactive=True), gr.update(interactive=True)],
-           outputs=[prompt_gen_button, key_gen_button, i2v_end_btn])
+        key_gen_button.click(
+            fn=process,
+            inputs=[input_fg, prompt, input_undo_steps, image_width, image_height, seed, steps, n_prompt, cfg],
+            outputs=[result_gallery]
+        ).then(lambda: [gr.update(interactive=True), gr.update(interactive=True), gr.update(interactive=True)],
+            outputs=[prompt_gen_button, key_gen_button, i2v_end_btn])
 
-    i2v_end_btn.click(
-        inputs=[result_gallery, i2v_input_text, i2v_steps, i2v_cfg_scale, i2v_fps, i2v_seed],
-        outputs=[i2v_output_video, i2v_output_images],
-        fn=process_video
-    )
+        i2v_end_btn.click(
+            inputs=[result_gallery, i2v_input_text, i2v_steps, i2v_cfg_scale, i2v_fps, i2v_seed],
+            outputs=[i2v_output_video, i2v_output_images],
+            fn=process_video
+        )
 
-    dbs = [
-        ['./imgs/1.jpg', 12345, 123],
-        ['./imgs/2.jpg', 37000, 12345],
-        ['./imgs/3.jpg', 3000, 3000],
-    ]
+        dbs = [
+            ['./imgs/1.jpg', 12345, 123],
+            ['./imgs/2.jpg', 37000, 12345],
+            ['./imgs/3.jpg', 3000, 3000],
+        ]
 
-    gr.Examples(
-        examples=dbs,
-        inputs=[input_fg, seed, i2v_seed],
-        examples_per_page=1024
-    )
+        gr.Examples(
+            examples=dbs,
+            inputs=[input_fg, seed, i2v_seed],
+            examples_per_page=1024
+        )
 
-block.queue().launch(server_name='0.0.0.0')
+    block.queue().launch(server_name='0.0.0.0')
