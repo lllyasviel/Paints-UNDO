@@ -9,28 +9,9 @@ from diffusers_vdm.basics import zero_module, checkpoint, default, make_temporal
 
 
 def sdp(q, k, v, heads):
-    b, _, C = q.shape
-    dim_head = C // heads
-
-    q, k, v = map(
-        lambda t: t.unsqueeze(3)
-        .reshape(b, t.shape[1], heads, dim_head)
-        .permute(0, 2, 1, 3)
-        .reshape(b * heads, t.shape[1], dim_head)
-        .contiguous(),
-        (q, k, v),
-    )
-
+    q, k, v = map(lambda t: rearrange(t, 'b t (h d) -> (b h) t d', h=heads), (q, k, v))
     out = xformers.ops.memory_efficient_attention(q, k, v)
-
-    out = (
-        out.unsqueeze(0)
-        .reshape(b, heads, out.shape[1], dim_head)
-        .permute(0, 2, 1, 3)
-        .reshape(b, out.shape[1], heads * dim_head)
-    )
-
-    return out
+    return rearrange(out, '(b h) t d -> b t (h d)', h=heads)
 
 
 class RelativePosition(nn.Module):
