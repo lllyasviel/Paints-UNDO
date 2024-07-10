@@ -170,7 +170,7 @@ class SamplerDynamicTSNR(torch.nn.Module):
     def model_apply(self, x, t, **extra_args):
         x = x.to(device=self.unet.device, dtype=self.unet.dtype)
         cfg_scale = extra_args['cfg_scale']
-        p = self.unet(x, t, **extra_args['positive'])
+        p = self.unet(x, t, **extra_args['positive']).clone()
         n = self.unet(x, t, **extra_args['negative'])
         o = n + cfg_scale * (p - n)
         o_better = rescale_noise_cfg(o, p, guidance_rescale=self.guidance_rescale)

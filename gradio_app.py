@@ -236,8 +236,33 @@ def process_video(keyframes: list[tuple[str]], prompt: str, steps: int, cfg: flo
     video = [x.cpu().numpy() for x in video]
     return output_filename, video
 
+def precompile(h: int, w: int, fs: int=3):
+    # trigger torch.compile'd modules under video processing.
+    # as only the unet is compiled, only h/w/fs will affect recompilation.
+    from tqdm import tqdm
+    import torch._inductor.config
+    torch._inductor.config.conv_1x1_as_mm = True
+    torch._inductor.config.epilogue_fusion = False
+    # torch._inductor.config.coordinate_descent_tuning = True
+    # torch._inductor.config.coordinate_descent_check_all_directions = True
+
+    memory_management.blacklist.add(video_pipe.unet.__class__.__name__)
+    memory_management.load_models_to_gpu([video_pipe.unet])
+    video_pipe.unet.compile(fullgraph=True, mode="reduce-overhead")
+    process_video_inner(
+        np.random.randint(0, 256, (h, w, 3), dtype=np.uint8),
+        np.random.randint(0, 256, (h, w, 3), dtype=np.uint8),
+        "1girl, masterpiece, best quality",
+        seed=123, steps=2, cfg_scale=7.5, fs=fs, progress_tqdm=tqdm,
+    )
 
 if __name__  == "__main__":
+    from sys import argv
+    if len(argv) > 2:
+        h,w = map(int,argv[1:3])
+        print(f"compiling for [{h}x{w}]")
+        precompile(h,w)
+
     block = gr.Blocks().queue()
     with block:
         gr.Markdown('# Paints-Undo')
