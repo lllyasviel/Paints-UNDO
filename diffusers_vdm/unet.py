@@ -594,10 +594,7 @@ class UNet3DModel(nn.Module, PyTorchModelHubMixin):
         t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False).type(x.dtype)
         emb = self.time_embed(t_emb)
 
-        context_text = context_text.repeat_interleave(repeats=t, dim=0)
-        context_img = rearrange(context_img, 'b t l c -> (b t) l c')
-
-        context = (context_text, context_img)
+        context = (context_text, context_img.flatten(end_dim=1))
 
         if concat_cond is not None:
             x = torch.cat([x, concat_cond], dim=1)

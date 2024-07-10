@@ -136,6 +136,9 @@ class CrossAttention(nn.Module):
             v = self.to_v(context)
             k_ip = self.to_k_ip(context_image)
             v_ip = self.to_v_ip(context_image)
+            factor = k_ip.size(0) // k.size(0)
+            k = k.repeat_interleave(factor, dim=0)
+            v = v.repeat_interleave(factor, dim=0)
         else:
             raise NotImplementedError('Traditional prompt-only attention without IP-Adapter is illegal now.')
 
