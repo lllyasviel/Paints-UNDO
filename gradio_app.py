@@ -117,7 +117,7 @@ def interrogator_process(x: np.ndarray) -> str:
 
 @torch.inference_mode()
 def process(input_fg: np.ndarray, prompt: str, input_undo_steps: list[int], image_width: int, image_height: int, 
-            seed: int, steps: int, n_prompt: str, cfg: float, progress: gr.Progress) -> list[np.ndarray]:
+            seed: int, steps: int, n_prompt: str, cfg: float, progress=gr.Progress()) -> list[np.ndarray]:
     rng = torch.Generator(device=memory_management.gpu).manual_seed(int(seed))
 
     memory_management.load_models_to_gpu(vae)

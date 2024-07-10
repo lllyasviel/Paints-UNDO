@@ -53,10 +53,7 @@ def test_main():
     i2v_steps = 50
     i2v_fps = 4
 
-    # with nullcontext():
-    #     key_frame_paths = [(str(p),) for p in Path('../nottempdir').iterdir()]
     with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir.mkdir(exist_ok=True)
         key_frame_paths = []
 
         for i, frame in enumerate(key_frames):
