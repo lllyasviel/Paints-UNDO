@@ -599,8 +599,6 @@ class UNet3DModel(nn.Module, PyTorchModelHubMixin):
 
         context = (context_text, context_img)
 
-        emb = emb.repeat_interleave(repeats=t, dim=0)
-
         if concat_cond is not None:
             x = torch.cat([x, concat_cond], dim=1)
 
@@ -615,8 +613,8 @@ class UNet3DModel(nn.Module, PyTorchModelHubMixin):
             fs_emb = timestep_embedding(fs, self.model_channels, repeat_only=False).type(x.dtype)
 
             fs_embed = self.fps_embedding(fs_emb)
-            fs_embed = fs_embed.repeat_interleave(repeats=t, dim=0)
             emb = emb + fs_embed
+        emb = emb.repeat_interleave(repeats=t, dim=0)
 
         h = x
         hs = []
