@@ -102,7 +102,7 @@ class CrossAttention(nn.Module):
         k_ip, v_ip, out_ip = None, None, None
 
         q = self.to_q(x)
-        context = default(context, x)
+        context = x if context is None else context
 
         if spatial_self_attn:
             k = self.to_k(context)

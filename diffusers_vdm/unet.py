@@ -247,8 +247,8 @@ class ResBlock(TimestepBlock):
         else:
             h = self.in_layers(x)
         emb_out = self.emb_layers(emb).type(h.dtype)
-        while len(emb_out.shape) < len(h.shape):
-            emb_out = emb_out[..., None]
+        for _ in range(h.dim() - emb_out.dim()):
+            emb_out = emb_out.unsqueeze(-1)
         if self.use_scale_shift_norm:
             out_norm, out_rest = self.out_layers[0], self.out_layers[1:]
             scale, shift = torch.chunk(emb_out, 2, dim=1)
