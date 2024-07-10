@@ -247,8 +247,8 @@ class ResBlock(TimestepBlock):
         else:
             h = self.in_layers(x)
         emb_out = self.emb_layers(emb).type(h.dtype)
-        while len(emb_out.shape) < len(h.shape):
-            emb_out = emb_out[..., None]
+        for _ in range(h.dim() - emb_out.dim()):
+            emb_out = emb_out.unsqueeze(-1)
         if self.use_scale_shift_norm:
             out_norm, out_rest = self.out_layers[0], self.out_layers[1:]
             scale, shift = torch.chunk(emb_out, 2, dim=1)
@@ -594,12 +594,7 @@ class UNet3DModel(nn.Module, PyTorchModelHubMixin):
         t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False).type(x.dtype)
         emb = self.time_embed(t_emb)
 
-        context_text = context_text.repeat_interleave(repeats=t, dim=0)
-        context_img = rearrange(context_img, 'b t l c -> (b t) l c')
-
-        context = (context_text, context_img)
-
-        emb = emb.repeat_interleave(repeats=t, dim=0)
+        context = (context_text, context_img.flatten(end_dim=1))
 
         if concat_cond is not None:
             x = torch.cat([x, concat_cond], dim=1)
@@ -615,8 +610,8 @@ class UNet3DModel(nn.Module, PyTorchModelHubMixin):
             fs_emb = timestep_embedding(fs, self.model_channels, repeat_only=False).type(x.dtype)
 
             fs_embed = self.fps_embedding(fs_emb)
-            fs_embed = fs_embed.repeat_interleave(repeats=t, dim=0)
             emb = emb + fs_embed
+        emb = emb.repeat_interleave(repeats=t, dim=0)
 
         h = x
         hs = []

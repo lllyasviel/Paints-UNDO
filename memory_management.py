@@ -10,6 +10,7 @@ torch.zeros((1, 1)).to(gpu, torch.float32)
 torch.cuda.empty_cache()
 
 models_in_gpu = []
+blacklist = set()
 
 
 @contextmanager
@@ -38,6 +39,8 @@ def load_models_to_gpu(models):
 
     if not high_vram:
         for m in models_to_unload:
+            if m.__class__.__name__ in blacklist:
+                continue
             with movable_bnb_model(m):
                 m.to(cpu)
             print('Unload to CPU:', m.__class__.__name__)
