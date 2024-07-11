@@ -19,8 +19,8 @@ from PIL import Image
 from diffusers_helper.code_cond import unet_add_coded_conds
 from diffusers_helper.cat_cond import unet_add_concat_conds
 from diffusers_helper.k_diffusion import KDiffusionSampler
+from diffusers_helper.attention import AttnProcessor2_0_xformers
 from diffusers import AutoencoderKL, UNet2DConditionModel
-from diffusers.models.attention_processor import AttnProcessor2_0
 from transformers import CLIPTextModel, CLIPTokenizer
 from diffusers_vdm.pipeline import LatentVideoDiffusionPipeline
 from diffusers_vdm.utils import resize_and_center_crop, save_bcthw_as_mp4
@@ -41,8 +41,8 @@ text_encoder = CLIPTextModel.from_pretrained(model_name, subfolder="text_encoder
 vae = AutoencoderKL.from_pretrained(model_name, subfolder="vae").to(torch.bfloat16)  # bfloat16 vae
 unet = ModifiedUNet.from_pretrained(model_name, subfolder="unet").to(torch.float16)
 
-unet.set_attn_processor(AttnProcessor2_0())
-vae.set_attn_processor(AttnProcessor2_0())
+unet.set_attn_processor(AttnProcessor2_0_xformers())
+vae.set_attn_processor(AttnProcessor2_0_xformers())
 
 video_pipe = LatentVideoDiffusionPipeline.from_pretrained(
     'lllyasviel/paints_undo_multi_frame',
