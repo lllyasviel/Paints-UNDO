@@ -129,3 +129,9 @@ and much more ...
 # Disclaimer
 
 This project aims to develop base models of human drawing behaviors, facilitating future AI systems to better meet the real needs of human artists. Users are granted the freedom to create content using this tool, but they are expected to comply with local laws and use it responsibly. Users must not employ the tool to generate false information or incite confrontation. The developers do not assume any responsibility for potential misuse by users.
+
+<p align="center">
+  <a href="https://star-history.com/#lllyasviel/Paints-UNDO&Date">
+    <img src="https://api.star-history.com/svg?repos=lllyasviel/Paints-UNDO&type=Date" alt="Star History Chart">
+  </a>
+</p>
