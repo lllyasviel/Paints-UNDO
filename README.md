@@ -22,11 +22,10 @@ You can deploy PaintsUndo locally via:
 
     git clone https://github.com/lllyasviel/Paints-UNDO.git
     cd Paints-UNDO
-    conda create -n paints_undo python=3.10
-    conda activate paints_undo
-    pip install xformers
-    pip install -r requirements.txt
-    python gradio_app.py
+    one_click_install.bat
+    run_gradio.bat
+
+(The first time you run_gradio.bat, you will be prompted to enter your name [you can leave it blank if you wish]. If you decide you want to change it you can open the greetings.json in the utils folder to update it with a different name or tag)
 
 (If you do not know how to use these commands, you can paste those commands to ChatGPT and ask ChatGPT to explain and give more detailed instructions.)
 
@@ -94,13 +93,17 @@ Note that this is by default disabled in inference to save GPU memory.
 
 After you get into the Gradio interface:
 
-Step 0: Upload an image or just click an Example image on the bottom of the page.
+First Tab: Upload an image or just click on one of the Example image (found in the Examples Gallery Tab), go back to the first tab & then click "Generate Prompt" to get the global prompt. (Use the Create New Projects - 📂 button, if you want to start a new output folder tree)
 
-Step 1: In the UI titled "step 1", click generate prompts to get the global prompt.
+Second Tab: Click "Generate Key Frames". You can change seeds or other parameters on the left.
 
-Step 2: In the UI titled "step 2", click "Generate Key Frames". You can change seeds or other parameters on the left.
+Third Tab: Click "Generate Video". You can change seeds or other parameters on the left.
 
-Step 3: In the UI titled "step 3", click "Generate Video". You can change seeds or other parameters on the left.
+Fourth Tab: As mentioned above is the Examples Gallery Tab.
+
+Fifth Tab: Allows the user to switch to different gradio_themes.
+
+(Finally, the input_image, keyframes, video_frames, and final_frame are now automatically saved to a well structured output folder similar to sd_forge, as well as all of the generative data embedded in the metadata. [use exiftools.exe or another image metadata viewer to see what settings & prompts you used for previous progects])
 
 # Cite
 
