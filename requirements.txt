@@ -9,9 +9,6 @@ tensorboardX
 safetensors
 pillow
 einops
-torch
 peft
-xformers
 onnxruntime
 av
-torchvision
