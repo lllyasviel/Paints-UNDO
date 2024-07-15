@@ -27,5 +27,4 @@ REM Deactivate the virtual environment
 echo Deactivating virtual conda environment...
 CALL conda deactivate
 
-pause
 exit
