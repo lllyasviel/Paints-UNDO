@@ -138,6 +138,8 @@ Also read ...
 
 [ProcessPainter: Learn Painting Process from Sequence Data](https://github.com/nicolaus-huang/ProcessPainter)
 
+[Decomposing Time-Lapse Paintings into Layers](https://cragl.cs.gmu.edu/timemap/)
+
 # Disclaimer
 
 This project aims to develop base models of human drawing behaviors, facilitating future AI systems to better meet the real needs of human artists. Users are granted the freedom to create content using this tool, but they are expected to comply with local laws and use it responsibly. Users must not employ the tool to generate false information or incite confrontation. The developers do not assume any responsibility for potential misuse by users.
