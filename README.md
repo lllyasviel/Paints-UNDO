@@ -126,6 +126,18 @@ and much more ...
 
 &ast; *this is already possible - if you use PaintsUndo to Undo 500 steps, and want to Redo 100 steps with different possibilities, you can use ControlNet to finish it (so that it becomes step 0) and then undo 400 steps. More integrated solution is still under experiments.*
 
+# Related Works
+
+Also read ...
+
+[Stylized Neural Painting](https://jiupinjia.github.io/neuralpainter/)
+
+[Learning to Paint With Model-based Deep Reinforcement Learning](https://github.com/hzwer/ICCV2019-LearningToPaint)
+
+[Paint Transformer: Feed Forward Neural Painting with Stroke Prediction](https://github.com/Huage001/PaintTransformer)
+
+[ProcessPainter: Learn Painting Process from Sequence Data](https://github.com/nicolaus-huang/ProcessPainter)
+
 # Disclaimer
 
 This project aims to develop base models of human drawing behaviors, facilitating future AI systems to better meet the real needs of human artists. Users are granted the freedom to create content using this tool, but they are expected to comply with local laws and use it responsibly. Users must not employ the tool to generate false information or incite confrontation. The developers do not assume any responsibility for potential misuse by users.
