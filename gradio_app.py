@@ -19,6 +19,7 @@ import json
 import warnings
 import subprocess
 
+from PIL.ExifTags import TAGS
 from PIL import Image, PngImagePlugin
 from diffusers_helper.code_cond import unet_add_coded_conds
 from diffusers_helper.cat_cond import unet_add_concat_conds
@@ -102,27 +103,43 @@ css = """
     margin: 0em 0em 0em 0;
     height: 2.5em;
 """
+
+def extract_metadata(image_path):
+    if image_path is None:
+        return "No image provided."
     
+    img = Image.open(image_path)
+    metadata = {}
+    exif_data = img._getexif()
+    
+    if exif_data:
+        exif_metadata = {}
+        for tag, value in exif_data.items():
+            decoded = TAGS.get(tag, tag)
+            exif_metadata[decoded] = value
+        metadata['EXIF'] = exif_metadata
+
+    try:
+        png_info = img.info
+        if png_info:
+            metadata['PNG'] = png_info
+    except AttributeError:
+        pass
+
+    if metadata:
+        return json.dumps(metadata, indent=4)
+    else:
+        return "No metadata found."
+
+def clear_input():
+    return None, ""
+
 def randomize_seed_fn():
     return random.randint(0, 50000)
 
 def create_randomize_button(elem_id):
     randomize_seed_button = gr.Button(randomize_symbol, elem_id=elem_id, variant="primary")
     return randomize_seed_button
-
-def get_user_name():
-    utils_folder = "utils"
-    greetings_path = os.path.join(utils_folder, "greetings.json")
-    if not os.path.exists(utils_folder):
-        os.makedirs(utils_folder)
-    if not os.path.exists(greetings_path):
-        name = input("Please enter your name: ")
-        with open(greetings_path, "w") as f:
-            json.dump({"name": name}, f)
-    else:
-        with open(greetings_path, "r") as f:
-            name = json.load(f).get("name", "User")
-    return name
 
 utils_folder = "utils"
 themes_path = os.path.join(utils_folder, 'themes.json')
@@ -137,8 +154,6 @@ if os.path.exists(config_path):
 else:
     default_theme = 'MackinationsAi/dark_evo'
 
-user_name = get_user_name()
-
 def title_ani(name):
     return f"Paints_UNDO, welcome {name}!"
 
@@ -152,7 +167,7 @@ function createGradioAnimation() {{
     container.style.color = '#ffa500';
     container.style.textAlign = 'left';
     container.style.marginBottom = '20px';
-    var text = 'Paints_UNDO - Welcome {user_name} 🖌️';
+    var text = 'Welcome to Paints_UNDO - 🖌️';
     for (var i = 0; i < text.length; i++) {{
         (function(i){{
             setTimeout(function(){{
@@ -494,6 +509,18 @@ def create_interface(theme):
                                     i2v_output_video = gr.Video(label="Generated Video", elem_id="output_vid", autoplay=True, show_share_button=True, height=512)
                             with gr.Row():
                                 i2v_output_images = gr.Gallery(height=512, label="Output Frames", object_fit="contain", columns=8)
+
+                        with gr.TabItem(label='Metadata Viewer'):
+                            gr.HTML(value="<p style='color: #ffa500;'>Upload an image here & its metadata will automatically appear in the DataViewer</p>")
+                            with gr.Row():
+                                with gr.Column():
+                                    image_input = gr.Image(type="filepath", height=717)
+                                with gr.Column():
+                                    metadata_output = gr.Textbox(label='DataViewer', lines=33)
+                                    image_input.change(extract_metadata, inputs=image_input, outputs=metadata_output)
+                            with gr.Row():
+                                clear_button = gr.Button("Clear Input Image", variant='primary')
+                                clear_button.click(clear_input, outputs=[image_input, metadata_output])
 
                         with gr.TabItem(label='Examples Gallery'):
                             dbs = [
