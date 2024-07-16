@@ -25,8 +25,6 @@ You can deploy PaintsUndo locally via:
     one_click_install.bat
     run_gradio.bat
 
-(The first time you run_gradio.bat, you will be prompted to enter your name [you can leave it blank if you wish]. If you decide you want to change it you can open the greetings.json in the utils folder to update it with a different name or tag)
-
 (If you do not know how to use these commands, you can paste those commands to ChatGPT and ask ChatGPT to explain and give more detailed instructions.)
 
 The inference is tested with 24GB VRAM on Nvidia 4090 and 3090TI. It may also work with 16GB VRAM, but does not work with 8GB. My estimation is that, under extreme optimization (including weight offloading and sliced attention), the theoretical minimal VRAM requirement is about 10~12.5 GB.
@@ -93,15 +91,17 @@ Note that this is by default disabled in inference to save GPU memory.
 
 After you get into the Gradio interface:
 
-First Tab: Upload an image or just click on one of the Example image (found in the Examples Gallery Tab), go back to the first tab & then click "Generate Prompt" to get the global prompt. (Use the Create New Projects - 📂 button, if you want to start a new output folder tree)
+**First Tab:** Upload an image or just click on one of the Example image (found in the Examples Gallery Tab), go back to the first tab & then click "Generate Prompt" to get the global prompt. (Use the Create New Projects - 📂 button, if you want to start a new output folder tree)
 
-Second Tab: Click "Generate Key Frames". You can change seeds or other parameters on the left.
+**Second Tab**: Click "Generate Key Frames". You can change seeds or other parameters on the left.
 
-Third Tab: Click "Generate Video". You can change seeds or other parameters on the left.
+**Third Tab**: Click "Generate Video". You can change seeds or other parameters on the left.
 
-Fourth Tab: As mentioned above is the Examples Gallery Tab.
+**Forth Tab**: Is a Metadata Viewer, just drag & drop one of your frames in, & the data will automatically appear in the DataViewer textbox.
 
-Fifth Tab: Allows the user to switch to different gradio_themes.
+**Fifth Tab**: As mentioned above is the Examples Gallery Tab.
+
+**Sixth Tab**: Allows the user to switch to different gradio_themes.
 
 (Finally, the input_image, keyframes, video_frames, and final_frame are now automatically saved to a well structured output folder similar to sd_forge, as well as all of the generative data embedded in the metadata. [use exiftools.exe or another image metadata viewer to see what settings & prompts you used for previous progects])
 
