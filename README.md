@@ -16,6 +16,10 @@ Paints-Undo presents a family of models that take an image as input and then out
 
 **Do note that many fake websites of PaintsUndo are on Google and social media recently.**
 
+# News
+
+2025 Aug 13: We release the preview of [PaintsAlter](https://lllyasviel.github.io/paints_alter_web/). A framework that can undo and redo to explore drawing processes.
+
 # Get Started
 
 You can deploy PaintsUndo locally via:
@@ -104,10 +108,25 @@ Step 3: In the UI titled "step 3", click "Generate Video". You can change seeds 
 
 # Cite
 
+PaintsUndo:
+
     @Misc{paintsundo,
       author = {Paints-Undo Team},
       title  = {Paints-Undo GitHub Page},
       year   = {2024},
+    }
+
+PaintsAlter:
+
+    @article{paintsalter,
+        author = {Zhang, Lvmin and Yan, Chuan and Guo, Yuwei and Xing, Jinbo and Agrawala, Maneesh},
+        title = {Generating Past and Future in Digital Painting Processes},
+        journal = {ACM Transactions on Graphics (SIGGRAPH 2025)},
+        year = {2025},
+        volume = {44},
+        number = {4},
+        articleno = {127},
+        numpages = {13},
     }
 
 # Applications
