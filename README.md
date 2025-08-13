@@ -116,7 +116,7 @@ PaintsUndo:
       year   = {2024},
     }
 
-PaintsAlter:
+[PaintsAlter](https://lllyasviel.github.io/paints_alter_web/):
 
     @article{paintsalter,
         author = {Zhang, Lvmin and Yan, Chuan and Guo, Yuwei and Xing, Jinbo and Agrawala, Maneesh},
