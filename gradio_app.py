@@ -1,8 +1,8 @@
 import os
 
 os.environ['HF_HOME'] = os.path.join(os.path.dirname(__file__), 'hf_download')
-result_dir = os.path.join('./', 'results')
-os.makedirs(result_dir, exist_ok=True)
+output_dir = os.path.join('./', 'output')
+os.makedirs(output_dir, exist_ok=True)
 
 
 import functools
@@ -14,8 +14,13 @@ import torch
 import wd14tagger
 import memory_management
 import uuid
+import time
+import json
+import warnings
+import subprocess
 
-from PIL import Image
+from PIL.ExifTags import TAGS
+from PIL import Image, PngImagePlugin
 from diffusers_helper.code_cond import unet_add_coded_conds
 from diffusers_helper.cat_cond import unet_add_concat_conds
 from diffusers_helper.k_diffusion import KDiffusionSampler
@@ -25,24 +30,26 @@ from transformers import CLIPTextModel, CLIPTokenizer
 from diffusers_vdm.pipeline import LatentVideoDiffusionPipeline
 from diffusers_vdm.utils import resize_and_center_crop, save_bcthw_as_mp4
 
+warnings.filterwarnings("ignore", category=UserWarning)
+
 
 class ModifiedUNet(UNet2DConditionModel):
     @classmethod
     def from_config(cls, *args, **kwargs):
-        m = super().from_config(*args, **kwargs)
-        unet_add_concat_conds(unet=m, new_channels=4)
-        unet_add_coded_conds(unet=m, added_number_count=1)
-        return m
+            m = super().from_config(*args, **kwargs)
+            unet_add_concat_conds(unet=m, new_channels=4)
+            unet_add_coded_conds(unet=m, added_number_count=1)
+            return m
 
 
 model_name = 'lllyasviel/paints_undo_single_frame'
 tokenizer = CLIPTokenizer.from_pretrained(model_name, subfolder="tokenizer")
 text_encoder = CLIPTextModel.from_pretrained(model_name, subfolder="text_encoder").to(torch.float16)
-vae = AutoencoderKL.from_pretrained(model_name, subfolder="vae").to(torch.bfloat16)  # bfloat16 vae
+vae = AutoencoderKL.from_pretrained(model_name, subfolder="vae").to(torch.bfloat16)
 unet = ModifiedUNet.from_pretrained(model_name, subfolder="unet").to(torch.float16)
 
-unet.set_attn_processor(AttnProcessor2_0())
 vae.set_attn_processor(AttnProcessor2_0())
+unet.set_attn_processor(AttnProcessor2_0())
 
 video_pipe = LatentVideoDiffusionPipeline.from_pretrained(
     'lllyasviel/paints_undo_multi_frame',
@@ -72,6 +79,116 @@ def find_best_bucket(h, w, options):
             min_metric = metric
             best_bucket = (bucket_h, bucket_w)
     return best_bucket
+
+
+# Original code by lllyasviel & updated code by MackinationsAi
+
+randomize_symbol = '\U0001F3B2'  # 🎲
+folder_symbol = '\U0001F4C2'  # 📂
+
+css = """
+#randomize_btn, #randomize_btn_2 {
+    margin: 0em 0em 0em 0;
+    max-width: 1.5em;
+    min-width: 1.5em !important;
+    height: 4.35em;
+}
+#new_project_btn {
+    margin-top: 50px;  /* Adjust this value to add more space */
+    position: absolute;
+    bottom: 0px;
+    width: 100%;
+}
+#theme_btn {
+    margin: 0em 0em 0em 0;
+    height: 2.5em;
+"""
+
+def extract_metadata(image_path):
+    if image_path is None:
+        return "No image provided."
+    
+    img = Image.open(image_path)
+    metadata = {}
+    exif_data = img._getexif()
+    
+    if exif_data:
+        exif_metadata = {}
+        for tag, value in exif_data.items():
+            decoded = TAGS.get(tag, tag)
+            exif_metadata[decoded] = value
+        metadata['EXIF'] = exif_metadata
+
+    try:
+        png_info = img.info
+        if png_info:
+            metadata['PNG'] = png_info
+    except AttributeError:
+        pass
+
+    if metadata:
+        return json.dumps(metadata, indent=4)
+    else:
+        return "No metadata found."
+
+def clear_input():
+    return None, ""
+
+def randomize_seed_fn():
+    return random.randint(0, 50000)
+
+def create_randomize_button(elem_id):
+    randomize_seed_button = gr.Button(randomize_symbol, elem_id=elem_id, variant="primary")
+    return randomize_seed_button
+
+utils_folder = "utils"
+themes_path = os.path.join(utils_folder, 'themes.json')
+config_path = os.path.join(utils_folder, 'config.json')
+with open(themes_path, 'r') as f:
+    themes = json.load(f)['themes']
+
+if os.path.exists(config_path):
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+        default_theme = config.get('theme', 'MackinationsAi/dark_evo')
+else:
+    default_theme = 'MackinationsAi/dark_evo'
+
+def title_ani(name):
+    return f"Paints_UNDO, welcome {name}!"
+
+js = f"""
+function createGradioAnimation() {{
+    var container = document.createElement('div');
+    container.id = 'gradio-animation';
+    container.style.fontSize = '2em';
+    container.style.fontWeight = 'bold';
+    container.style.fontFamily = 'monospace';
+    container.style.color = '#ffa500';
+    container.style.textAlign = 'left';
+    container.style.marginBottom = '20px';
+    var text = 'Welcome to Paints_UNDO - 🖌️';
+    for (var i = 0; i < text.length; i++) {{
+        (function(i){{
+            setTimeout(function(){{
+                var letter = document.createElement('span');
+                letter.style.opacity = '0';
+                letter.style.transition = 'opacity 0.75s';
+                letter.innerText = text[i];
+
+                container.appendChild(letter);
+
+                setTimeout(function() {{
+                    letter.style.opacity = '1';
+                }}, 50);
+            }}, i * 250);
+        }})(i);
+    }}
+    var gradioContainer = document.querySelector('.gradio-container');
+    gradioContainer.insertBefore(container, gradioContainer.firstChild);
+    return 'Animation created';
+}}
+"""
 
 
 @torch.inference_mode()
@@ -114,10 +231,51 @@ def resize_without_crop(image, target_width, target_height):
 def interrogator_process(x):
     return wd14tagger.default_interrogator(x)
 
+def embed_metadata(image, metadata):
+    info = PngImagePlugin.PngInfo()
+    for key, value in metadata.items():
+        info.add_text(key, str(value))
+    return info
+
+def save_image_with_metadata(image, path, metadata):
+    pil_image = Image.fromarray(image)
+    info = embed_metadata(pil_image, metadata)
+    pil_image.save(path, "PNG", pnginfo=info)
+
+current_project_dir = None
+
+def generate_project_subfolders(force_create=False):
+    global current_project_dir
+    current_date = time.strftime("%Y-%m-%d")
+    date_dir = os.path.join(output_dir, current_date)
+    os.makedirs(date_dir, exist_ok=True)
+
+    if current_project_dir is None or force_create:
+        project_number = 1
+        while os.path.exists(os.path.join(date_dir, f"timelapse_{project_number:04d}")):
+            project_number += 1
+
+        current_project_dir = os.path.join(date_dir, f"timelapse_{project_number:04d}")
+        os.makedirs(current_project_dir, exist_ok=True)
+
+    input_gpi_dir = os.path.join(current_project_dir, 'input_gpi')
+    keyframes_dir = os.path.join(current_project_dir, 'keyframes')
+    video_composite_dir = os.path.join(current_project_dir, 'video_composite')
+    output_frames_dir = os.path.join(video_composite_dir, 'output_frames')
+
+    os.makedirs(input_gpi_dir, exist_ok=True)
+    os.makedirs(keyframes_dir, exist_ok=True)
+    os.makedirs(video_composite_dir, exist_ok=True)
+    os.makedirs(output_frames_dir, exist_ok=True)
+
+    return input_gpi_dir, keyframes_dir, video_composite_dir, output_frames_dir
+
+def create_new_project():
+    return generate_project_subfolders(force_create=True)
+
 
 @torch.inference_mode()
-def process(input_fg, prompt, input_undo_steps, image_width, image_height, seed, steps, n_prompt, cfg,
-            progress=gr.Progress()):
+def process(input_fg, prompt, input_undo_steps, image_width, image_height, seed, steps, n_prompt, cfg, progress=gr.Progress()):
     rng = torch.Generator(device=memory_management.gpu).manual_seed(int(seed))
 
     memory_management.load_models_to_gpu(vae)
@@ -152,7 +310,22 @@ def process(input_fg, prompt, input_undo_steps, image_width, image_height, seed,
     pixels = pytorch2numpy(pixels)
     pixels = [fg] + pixels + [np.zeros_like(fg) + 255]
 
-    return pixels
+    input_gpi_dir, keyframes_dir, video_composite_dir, output_frames_dir = generate_project_subfolders()
+    key_frame_paths = []
+    for i, pixel in enumerate(pixels[1:-1], 1):
+        key_frame_metadata = {
+            'Prompt': prompt,
+            'Negative Prompt': n_prompt,
+            'Operation Steps': input_undo_steps,
+            '2nd Stage Seed': seed,
+            'CFG Scale': cfg,
+            'Sample Steps': steps
+        }
+        key_frame_path = os.path.join(keyframes_dir, f'keyframe_{i:04d}.png')
+        save_image_with_metadata(pixel, key_frame_path, key_frame_metadata)
+        key_frame_paths.append(key_frame_path)
+
+    return key_frame_paths
 
 
 @torch.inference_mode()
@@ -211,6 +384,19 @@ def process_video_inner(image_1, image_2, prompt, seed=123, steps=25, cfg_scale=
     return video, image_1, image_2
 
 
+def extract_frames_from_video(video_path, output_frames_dir, fps):
+    os.makedirs(output_frames_dir, exist_ok=True)
+    output_frame_template = os.path.join(output_frames_dir, 'output_frames_%04d.png').replace("\\", "/")
+    
+    command = [
+        'ffmpeg',
+        '-i', video_path.replace("\\", "/"),
+        '-vf', f'fps={fps}',
+        output_frame_template
+    ]
+    
+    subprocess.run(command, check=True)
+
 @torch.inference_mode()
 def process_video(keyframes, prompt, steps, cfg, fps, seed, progress=gr.Progress()):
     result_frames = []
@@ -229,96 +415,194 @@ def process_video(keyframes, prompt, steps, cfg, fps, seed, progress=gr.Progress
     video = torch.cat(result_frames, dim=2)
     video = torch.flip(video, dims=[2])
 
+    input_gpi_dir, keyframes_dir, video_composite_dir, output_frames_dir = generate_project_subfolders()
     uuid_name = str(uuid.uuid4())
-    output_filename = os.path.join(result_dir, uuid_name + '.mp4')
-    Image.fromarray(cropped_images[0][0]).save(os.path.join(result_dir, uuid_name + '.png'))
+    output_filename = os.path.join(video_composite_dir, uuid_name + '.mp4')
+
     video = save_bcthw_as_mp4(video, output_filename, fps=fps)
+
+    final_frame_metadata = {
+        'Prompt': prompt,
+        'Steps': steps,
+        'CFG Scale': cfg,
+        'FPS': fps,
+        'Seed': seed,
+    }
+    final_frame_image_path = os.path.join(video_composite_dir, uuid_name + '_final_frame.png')
+    save_image_with_metadata(cropped_images[-1][1], final_frame_image_path, final_frame_metadata)
+
+    extract_frames_from_video(output_filename, output_frames_dir, fps)
+
     video = [x.cpu().numpy() for x in video]
     return output_filename, video
 
+def save_initial_frame_with_metadata(prompt, input_fg):
+    if input_fg is not None:
+        input_gpi_dir, _, _, _ = generate_project_subfolders()
+        input_image = Image.fromarray(input_fg)
+        initial_metadata = {
+            'Prompt': prompt
+        }
 
-block = gr.Blocks().queue()
-with block:
-    gr.Markdown('# Paints-Undo')
+        existing_files = [f for f in os.listdir(input_gpi_dir) if f.startswith("initial_frame_")]
+        next_index = len(existing_files) + 1
+        initial_frame_path = os.path.join(input_gpi_dir, f'initial_frame_{next_index:04d}.png')
+        
+        save_image_with_metadata(np.array(input_image), initial_frame_path, initial_metadata)
+    else:
+        print("Error: input_fg is None")
 
-    with gr.Accordion(label='Step 1: Upload Image and Generate Prompt', open=True):
-        with gr.Row():
-            with gr.Column():
-                input_fg = gr.Image(sources=['upload'], type="numpy", label="Image", height=512)
-            with gr.Column():
-                prompt_gen_button = gr.Button(value="Generate Prompt", interactive=False)
-                prompt = gr.Textbox(label="Output Prompt", interactive=True)
+def save_theme_to_config(theme):
+    with open(config_path, 'w') as f:
+        json.dump({'theme': theme}, f)
+    return "Theme saved! Please restart the app to apply the new theme."
 
-    with gr.Accordion(label='Step 2: Generate Key Frames', open=True):
-        with gr.Row():
-            with gr.Column():
-                input_undo_steps = gr.Dropdown(label="Operation Steps", value=[400, 600, 800, 900, 950, 999],
-                                               choices=list(range(1000)), multiselect=True)
-                seed = gr.Slider(label='Stage 1 Seed', minimum=0, maximum=50000, step=1, value=12345)
-                image_width = gr.Slider(label="Image Width", minimum=256, maximum=1024, value=512, step=64)
-                image_height = gr.Slider(label="Image Height", minimum=256, maximum=1024, value=640, step=64)
-                steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=50, step=1)
-                cfg = gr.Slider(label="CFG Scale", minimum=1.0, maximum=32.0, value=3.0, step=0.01)
-                n_prompt = gr.Textbox(label="Negative Prompt",
-                                      value='lowres, bad anatomy, bad hands, cropped, worst quality')
+def create_interface(theme):
+    try:
+        block = gr.Blocks(theme=theme, css=css, js=js).queue()
+        with block:
+            with gr.Row(equal_height=True):
+                with gr.Column(variant='panel'):
+                    gr.HTML(value="<p style='color: #ffa500;'>Digital Painting Timelapse Generator - [<a href='https://github.com/lllyasviel/Paints-UNDO' style='color: #ffa500;'>Github</a>]</p>")
+                    with gr.Tabs():
+                        with gr.TabItem(label='Upload Image & Generate Prompt - Step 1'):
+                            with gr.Row():
+                                with gr.Column():
+                                    input_fg = gr.Image(sources=['upload'], type="numpy", label="Image", height="512")
+                                with gr.Column():
+                                    prompt_gen_button = gr.Button(value="Generate Prompt", interactive=True)
+                                    prompt = gr.Textbox(label="Output Prompt", interactive=True, lines=3)
+                                    with gr.Row():
+                                        gr.HTML('<div style="position: relative; height: 100%;">')
+                                        new_project_button = gr.Button(value=f"Create New Project - {folder_symbol}", interactive=True, elem_id="new_project_btn")
+                                        gr.HTML('</div>')
 
-            with gr.Column():
-                key_gen_button = gr.Button(value="Generate Key Frames", interactive=False)
-                result_gallery = gr.Gallery(height=512, object_fit='contain', label='Outputs', columns=4)
+                        with gr.TabItem(label='Generate KeyFrames - Step 2'):
+                            with gr.Row():
+                                with gr.Column():
+                                    input_undo_steps = gr.Dropdown(label="Operation Steps", value=[1, 100, 300, 500, 700, 900, 950, 999], choices=list(range(1000)), multiselect=True)
+                                    with gr.Row():
+                                        seed = gr.Slider(label='1st Stage Seed', minimum=0, maximum=50000, step=1, value=12345)
+                                        randomize_seed_button = create_randomize_button("randomize_btn")
+                                    image_width = gr.Slider(label="Image Width", minimum=256, maximum=1024, value=512, step=64)
+                                    image_height = gr.Slider(label="Image Height", minimum=256, maximum=1024, value=640, step=64)
+                                    steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=50, step=1)
+                                    cfg = gr.Slider(label="CFG Scale", minimum=1.0, maximum=32.0, value=3.0, step=0.5)
+                                    n_prompt = gr.Textbox(label="Negative Prompt", value='lowres, bad anatomy, bad hands, cropped, worst quality', lines=1)
 
-    with gr.Accordion(label='Step 3: Generate All Videos', open=True):
-        with gr.Row():
-            with gr.Column():
-                # Note that, at "Step 3: Generate All Videos", using "1girl, masterpiece, best quality"
-                # or "1boy, masterpiece, best quality" or just "masterpiece, best quality" leads to better results.
-                # Do NOT modify this to use the prompts generated from Step 1 !!
-                i2v_input_text = gr.Text(label='Prompts', value='1girl, masterpiece, best quality')
-                i2v_seed = gr.Slider(label='Stage 2 Seed', minimum=0, maximum=50000, step=1, value=123)
-                i2v_cfg_scale = gr.Slider(minimum=1.0, maximum=15.0, step=0.5, label='CFG Scale', value=7.5,
-                                          elem_id="i2v_cfg_scale")
-                i2v_steps = gr.Slider(minimum=1, maximum=60, step=1, elem_id="i2v_steps",
-                                      label="Sampling steps", value=50)
-                i2v_fps = gr.Slider(minimum=1, maximum=30, step=1, elem_id="i2v_motion", label="FPS", value=4)
-            with gr.Column():
-                i2v_end_btn = gr.Button("Generate Video", interactive=False)
-                i2v_output_video = gr.Video(label="Generated Video", elem_id="output_vid", autoplay=True,
-                                            show_share_button=True, height=512)
-        with gr.Row():
-            i2v_output_images = gr.Gallery(height=512, label="Output Frames", object_fit="contain", columns=8)
+                                with gr.Column():
+                                    key_gen_button = gr.Button(value="Generate Key Frames", interactive=True)
+                                    result_gallery = gr.Gallery(height=512, object_fit='contain', label='Outputs', columns=4)
 
-    input_fg.change(lambda: ["", gr.update(interactive=True), gr.update(interactive=False), gr.update(interactive=False)],
-                    outputs=[prompt, prompt_gen_button, key_gen_button, i2v_end_btn])
+                        with gr.TabItem(label='Generate All Videos - Step 3'):
+                            with gr.Row():
+                                with gr.Column():
+                                    i2v_input_text = gr.Text(label='Prompts', value='1girl, masterpiece, best quality', lines=9)
+                                    with gr.Row():
+                                        i2v_seed = gr.Slider(label='2nd Stage Seed', minimum=0, maximum=50000, step=1, value=123)
+                                        i2v_randomize_seed_button = create_randomize_button("randomize_btn_2")
+                                    i2v_cfg_scale = gr.Slider(minimum=1.0, maximum=15.0, step=0.5, label='CFG Scale', value=7.5, elem_id="i2v_cfg_scale")
+                                    i2v_steps = gr.Slider(minimum=1, maximum=60, step=1, elem_id="i2v_steps", label="Sampling steps", value=50)
+                                    i2v_fps = gr.Slider(minimum=1, maximum=30, step=1, elem_id="i2v_motion", label="FPS", value=4)
+                                with gr.Column():
+                                    i2v_end_btn = gr.Button("Generate Video", interactive=True)
+                                    i2v_output_video = gr.Video(label="Generated Video", elem_id="output_vid", autoplay=True, show_share_button=True, height=512)
+                            with gr.Row():
+                                i2v_output_images = gr.Gallery(height=512, label="Output Frames", object_fit="contain", columns=8)
 
-    prompt_gen_button.click(
-        fn=interrogator_process,
-        inputs=[input_fg],
-        outputs=[prompt]
-    ).then(lambda: [gr.update(interactive=True), gr.update(interactive=True), gr.update(interactive=False)],
-           outputs=[prompt_gen_button, key_gen_button, i2v_end_btn])
+                        with gr.TabItem(label='Metadata Viewer'):
+                            gr.HTML(value="<p style='color: #ffa500;'>Upload an image here & its metadata will automatically appear in the DataViewer</p>")
+                            with gr.Row():
+                                with gr.Column():
+                                    image_input = gr.Image(type="filepath", height=717)
+                                with gr.Column():
+                                    metadata_output = gr.Textbox(label='DataViewer', lines=33)
+                                    image_input.change(extract_metadata, inputs=image_input, outputs=metadata_output)
+                            with gr.Row():
+                                clear_button = gr.Button("Clear Input Image", variant='primary')
+                                clear_button.click(clear_input, outputs=[image_input, metadata_output])
 
-    key_gen_button.click(
-        fn=process,
-        inputs=[input_fg, prompt, input_undo_steps, image_width, image_height, seed, steps, n_prompt, cfg],
-        outputs=[result_gallery]
-    ).then(lambda: [gr.update(interactive=True), gr.update(interactive=True), gr.update(interactive=True)],
-           outputs=[prompt_gen_button, key_gen_button, i2v_end_btn])
+                        with gr.TabItem(label='Examples Gallery'):
+                            dbs = [
+                                ['./imgs/1.jpg', [400, 600, 800, 900, 950, 999], 12345, 512, 640, 50, 3.0, 'lowres, bad anatomy, bad hands, cropped, worst quality', '1girl, masterpiece, best quality', 123, 7.5, 50, 4],
+                                ['./imgs/2.jpg', [400, 600, 800, 900, 950, 999], 37000, 512, 640, 50, 3.0, 'lowres, bad anatomy, bad hands, cropped, worst quality', '1girl, masterpiece, best quality', 12345, 7.5, 50, 4],
+                                ['./imgs/3.jpg', [400, 600, 800, 900, 950, 999], 3000, 512, 640, 50, 3.0, 'lowres, bad anatomy, bad hands, cropped, worst quality', '1girl, masterpiece, best quality', 3000, 7.5, 50, 4],
+                            ]
 
-    i2v_end_btn.click(
-        inputs=[result_gallery, i2v_input_text, i2v_steps, i2v_cfg_scale, i2v_fps, i2v_seed],
-        outputs=[i2v_output_video, i2v_output_images],
-        fn=process_video
-    )
+                            gr.Examples(
+                                examples=dbs,
+                                inputs=[input_fg, input_undo_steps, seed, image_width, image_height, steps, cfg, n_prompt, i2v_input_text, i2v_seed, i2v_cfg_scale, i2v_steps, i2v_fps],
+                                examples_per_page=1024,
+                            )
 
-    dbs = [
-        ['./imgs/1.jpg', 12345, 123],
-        ['./imgs/2.jpg', 37000, 12345],
-        ['./imgs/3.jpg', 3000, 3000],
-    ]
+                        with gr.TabItem(label='UI Settings'):
+                            with gr.Row():
+                                with gr.Column(scale=2):
+                                    theme_dropdown = gr.Dropdown(label="Select Theme", choices=themes, value=themes[0])
+                                with gr.Column(scale=0.5):
+                                    apply_theme_button = gr.Button(value="Save New Theme", interactive=True, elem_id="theme_btn")
+                                    restart_message = gr.HTML(value="Click save new theme & then restart app to apply it.", visible=True)
+                            
+                            apply_theme_button.click(
+                                fn=save_theme_to_config,
+                                inputs=[theme_dropdown],
+                                outputs=[restart_message]
+                            )
 
-    gr.Examples(
-        examples=dbs,
-        inputs=[input_fg, seed, i2v_seed],
-        examples_per_page=1024
-    )
+            input_fg.change(lambda: ["", gr.update(interactive=True), gr.update(interactive=True), gr.update(interactive=True)],
+                outputs=[prompt, prompt_gen_button, key_gen_button, i2v_end_btn])
 
-block.queue().launch(server_name='0.0.0.0')
+            prompt_gen_button.click(
+                fn=interrogator_process,
+                inputs=[input_fg],
+                outputs=[prompt]
+            ).then(
+                fn=save_initial_frame_with_metadata,
+                inputs=[prompt, input_fg],
+                outputs=[]
+            ).then(
+                fn=lambda x: [gr.update(interactive=True), gr.update(interactive=True), gr.update(interactive=True)],
+                inputs=[],
+                outputs=[prompt_gen_button, key_gen_button, i2v_end_btn]
+            )
+
+            new_project_button.click(
+                fn=create_new_project,
+                inputs=[],
+                outputs=[]
+            )
+
+            key_gen_button.click(
+                fn=process,
+                inputs=[input_fg, prompt, input_undo_steps, image_width, image_height, seed, steps, n_prompt, cfg],
+                outputs=[result_gallery]
+            )
+
+            i2v_end_btn.click(
+                fn=process_video,
+                inputs=[result_gallery, i2v_input_text, i2v_steps, i2v_cfg_scale, i2v_fps, i2v_seed],
+                outputs=[i2v_output_video, i2v_output_images]
+            )
+
+            randomize_seed_button.click(
+                fn=randomize_seed_fn,
+                inputs=[],
+                outputs=[seed]
+            )
+
+            i2v_randomize_seed_button.click(
+                fn=randomize_seed_fn,
+                inputs=[],
+                outputs=[i2v_seed]
+            )
+
+        return block
+    except Exception as e:
+        print(f"Error in create_interface: {e}")
+        return None
+
+block = create_interface(default_theme)
+if block is not None:
+    block.launch(server_name='0.0.0.0')
+else:
+    print("Failed to create the Gradio interface.")
