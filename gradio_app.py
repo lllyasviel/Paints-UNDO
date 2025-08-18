@@ -14,6 +14,7 @@ import torch
 import wd14tagger
 import memory_management
 import uuid
+import argparse
 
 from PIL import Image
 from diffusers_helper.code_cond import unet_add_coded_conds
@@ -321,4 +322,9 @@ with block:
         examples_per_page=1024
     )
 
-block.queue().launch(server_name='0.0.0.0')
+
+# command line arguments
+parser = argparse.ArgumentParser(description='Run the Paints-UNDO')
+parser.add_argument('--share', action='store_true', help='Share the app on Gradio')
+args = parser.parse_args()
+block.queue().launch(server_name='0.0.0.0', share=args.share)

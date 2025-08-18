@@ -42,6 +42,15 @@ Because the processing time, in most cases, is significantly longer than most ta
 
 If you do not have required computation devices and still wants an online solution, one option is to wait us to release a Colab notebook (but I am not sure if Colab free tier will work). 
 
+## Use Google Colab
+To use with Google Colab, please use the following command:
+
+    !git clone https://github.com/lllyasviel/Paints-UNDO.git
+    %cd Paints-UNDO
+    !pip install xformers
+    !pip install -r requirements.txt
+    !python gradio_app.py --share
+
 # Model Notes
 
 We currently release two models `paints_undo_single_frame` and `paints_undo_multi_frame`. Let's call them single-frame model and multi-frame model.
